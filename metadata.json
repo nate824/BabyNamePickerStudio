@@ -1,0 +1,6 @@
+{
+  "name": "Kindred Baby Names",
+  "description": "Delightful baby name picker with partner sync, smart recommendation algorithm, and shared favorites.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

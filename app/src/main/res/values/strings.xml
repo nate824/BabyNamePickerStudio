@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Kindred Baby Names</string>
+    <string name="tab_swipe">Explore</string>
+    <string name="tab_matches">Shared Loves</string>
+    <string name="tab_my_likes">My Likes</string>
+    <string name="tab_algo">AI Tune</string>
+    <string name="add_name_title">Suggest a Name</string>
+    <string name="partner_link_title">Partner Sync</string>
+    <string name="notification_channel_name">Baby Name Matches</string>
+    <string name="notification_channel_desc">Alerts when you and your partner match on a baby name</string>
+</resources>
