@@ -97,7 +97,7 @@ fun AiAssistantCard(
             Spacer(modifier = Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 AiButton(
-                    label = "Suggest from our likes",
+                    label = "More like ours",
                     icon = Icons.Default.AutoAwesome,
                     loading = aiTask == AiTask.SUGGEST,
                     enabled = idle,
@@ -107,7 +107,7 @@ fun AiAssistantCard(
                     modifier = Modifier.weight(1f)
                 )
                 AiButton(
-                    label = "Explain our taste",
+                    label = "Our taste",
                     icon = Icons.Default.Insights,
                     loading = aiTask == AiTask.TASTE,
                     enabled = idle,
