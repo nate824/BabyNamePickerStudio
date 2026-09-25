@@ -9,9 +9,10 @@ import androidx.room.RoomDatabase
     entities = [
         BabyNameEntity::class,
         SwipeEntity::class,
-        MatchEntity::class
+        MatchEntity::class,
+        PendingOpEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -27,7 +28,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "kindred_names.db"
-                ).build()
+                ).fallbackToDestructiveMigration(dropAllTables = true).build()
                 INSTANCE = instance
                 instance
             }

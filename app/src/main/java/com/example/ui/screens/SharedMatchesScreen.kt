@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
@@ -79,6 +80,7 @@ fun SharedMatchesScreen(
     onUpdateRating: (nameId: String, rating: Int) -> Unit,
     onUpdateNotes: (nameId: String, notes: String) -> Unit,
     onDeleteMatch: (nameId: String) -> Unit,
+    onDeepDive: (MatchWithDetails) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -278,7 +280,8 @@ fun SharedMatchesScreen(
                         matchWithDetails = item,
                         onUpdateRating = { rating -> onUpdateRating(item.babyName.id, rating) },
                         onEditNotes = { editingNotesForMatch = item },
-                        onDeleteMatch = { onDeleteMatch(item.babyName.id) }
+                        onDeleteMatch = { onDeleteMatch(item.babyName.id) },
+                        onDeepDive = { onDeepDive(item) }
                     )
                 }
                 item {
@@ -329,7 +332,8 @@ private fun MatchDashboardCard(
     matchWithDetails: MatchWithDetails,
     onUpdateRating: (Int) -> Unit,
     onEditNotes: () -> Unit,
-    onDeleteMatch: () -> Unit
+    onDeleteMatch: () -> Unit,
+    onDeepDive: () -> Unit
 ) {
     val babyName = matchWithDetails.babyName
     val match = matchWithDetails.match
@@ -463,6 +467,34 @@ private fun MatchDashboardCard(
                             color = primaryColor
                         )
                     }
+                }
+            }
+
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = primaryColor.copy(alpha = 0.12f),
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .clickable { onDeepDive() }
+                    .testTag("deep_dive_button_${babyName.id}")
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        tint = primaryColor,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Deep dive with Claude",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = primaryColor
+                    )
                 }
             }
 

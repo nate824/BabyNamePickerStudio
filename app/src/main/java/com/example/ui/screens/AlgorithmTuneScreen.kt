@@ -51,7 +51,9 @@ import com.example.data.model.AlgorithmConfig
 import com.example.data.model.AlgorithmExplanation
 import com.example.data.model.LengthPreference
 import com.example.data.model.PopularityFocus
+import com.example.ui.components.AiAssistantCard
 import com.example.ui.theme.PrimaryRose
+import com.example.ui.viewmodel.AiTask
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -60,6 +62,11 @@ fun AlgorithmTuneScreen(
     explanation: AlgorithmExplanation,
     onSaveConfig: (AlgorithmConfig) -> Unit,
     onResetDefaults: () -> Unit,
+    aiTask: AiTask?,
+    tasteSummary: String?,
+    onAiDescribe: (String) -> Unit,
+    onAiSuggest: () -> Unit,
+    onAiTaste: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var isEnabled by remember(currentConfig) { mutableStateOf(currentConfig.isEnabled) }
@@ -118,6 +125,16 @@ fun AlgorithmTuneScreen(
         }
 
         Spacer(modifier = Modifier.height(12.dp))
+
+        AiAssistantCard(
+            aiTask = aiTask,
+            tasteSummary = tasteSummary,
+            onDescribe = onAiDescribe,
+            onSuggest = onAiSuggest,
+            onTaste = onAiTaste
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Main On/Off Toggle Card
         Card(

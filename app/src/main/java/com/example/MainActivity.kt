@@ -40,6 +40,8 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -65,10 +67,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.ui.components.AddNameDialog
+import com.example.ui.components.DeepDiveDialog
 import com.example.ui.components.MatchCelebrationDialog
 import com.example.ui.components.PartnerHeaderBar
 import com.example.ui.screens.AlgorithmTuneScreen
 import com.example.ui.screens.MyLikesScreen
+import com.example.ui.screens.OnboardingScreen
 import com.example.ui.screens.SharedMatchesScreen
 import com.example.ui.screens.SwipeDeckScreen
 import com.example.ui.theme.MyApplicationTheme
@@ -97,9 +101,9 @@ enum class AppTab(val title: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainApp(viewModel: MainViewModel = viewModel()) {
-    val context = LocalContext.current
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     var showAddNameDialog by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     // Request notification permission on Android 13+
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
@@ -113,11 +117,29 @@ fun MainApp(viewModel: MainViewModel = viewModel()) {
         }
     }
 
-    // State collections
-    val activeUserId by viewModel.activeUserId.collectAsState()
-    val partner1Name by viewModel.partner1Name.collectAsState()
-    val partner2Name by viewModel.partner2Name.collectAsState()
-    val pairCode by viewModel.pairCode.collectAsState()
+    LaunchedEffect(Unit) {
+        viewModel.messages.collect { snackbarHostState.showSnackbar(it) }
+    }
+
+    val session by viewModel.session.collectAsState()
+    val syncStatus by viewModel.syncStatus.collectAsState()
+    val busy by viewModel.busy.collectAsState()
+    val showPairingStep by viewModel.showPairingStep.collectAsState()
+
+    if (!session.isRegistered || showPairingStep) {
+        Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+            OnboardingScreen(
+                session = session,
+                busy = busy,
+                onRegister = { viewModel.register(it) },
+                onCreatePairCode = { viewModel.createPairCode() },
+                onJoinPartner = { viewModel.joinPartner(it) },
+                onFinish = { viewModel.finishPairingStep() }
+            )
+            SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp))
+        }
+        return
+    }
 
     val currentQueue by viewModel.currentQueue.collectAsState()
     val partnerLikedIds by viewModel.partnerLikedNameIds.collectAsState()
@@ -131,13 +153,18 @@ fun MainApp(viewModel: MainViewModel = viewModel()) {
     val algoConfig by viewModel.algorithmConfig.collectAsState()
     val algoExplanation by viewModel.algorithmExplanation.collectAsState()
 
+    val aiTask by viewModel.aiTask.collectAsState()
+    val tasteSummary by viewModel.tasteSummary.collectAsState()
+    val deepDive by viewModel.deepDive.collectAsState()
+
     val matchCelebrationName by viewModel.matchCelebrationBabyName.collectAsState()
 
-    val activeUserName = viewModel.getActivePartnerName()
-    val partnerName = viewModel.getInactivePartnerName()
+    val myName = session.myName.ifBlank { "You" }
+    val partnerName = session.partnerName ?: "your partner"
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             Column(
                 modifier = Modifier
@@ -193,14 +220,15 @@ fun MainApp(viewModel: MainViewModel = viewModel()) {
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
                 )
 
-                // Partner switcher & sync bar
                 PartnerHeaderBar(
-                    activeUserId = activeUserId,
-                    partner1Name = partner1Name,
-                    partner2Name = partner2Name,
-                    pairCode = pairCode,
-                    onSwitchUser = { newId -> viewModel.switchActiveUser(newId) },
-                    onRenamePartners = { p1, p2 -> viewModel.renamePartners(p1, p2) },
+                    session = session,
+                    syncStatus = syncStatus,
+                    busy = busy,
+                    onCreatePairCode = { viewModel.createPairCode() },
+                    onJoinPartner = { viewModel.joinPartner(it) },
+                    onUnlink = { viewModel.unlinkPartner() },
+                    onRename = { viewModel.renameMe(it) },
+                    onSyncNow = { viewModel.syncNow() },
                     modifier = Modifier.padding(bottom = 6.dp)
                 )
             }
@@ -210,7 +238,6 @@ fun MainApp(viewModel: MainViewModel = viewModel()) {
                 containerColor = MaterialTheme.colorScheme.surface,
                 tonalElevation = 8.dp
             ) {
-                // Tab 0: Swipe Deck
                 NavigationBarItem(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
@@ -224,7 +251,6 @@ fun MainApp(viewModel: MainViewModel = viewModel()) {
                     modifier = Modifier.testTag("tab_explore")
                 )
 
-                // Tab 1: Shared Matches
                 NavigationBarItem(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
@@ -250,7 +276,6 @@ fun MainApp(viewModel: MainViewModel = viewModel()) {
                     modifier = Modifier.testTag("tab_shared")
                 )
 
-                // Tab 2: My Likes
                 NavigationBarItem(
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 },
@@ -276,7 +301,6 @@ fun MainApp(viewModel: MainViewModel = viewModel()) {
                     modifier = Modifier.testTag("tab_my_likes")
                 )
 
-                // Tab 3: AI Tune
                 NavigationBarItem(
                     selected = selectedTab == 3,
                     onClick = { selectedTab = 3 },
@@ -307,7 +331,7 @@ fun MainApp(viewModel: MainViewModel = viewModel()) {
                     SwipeDeckScreen(
                         currentQueue = currentQueue,
                         partnerLikedNameIds = partnerLikedIds,
-                        activeUserName = activeUserName,
+                        activeUserName = myName,
                         partnerName = partnerName,
                         genderFilter = genderFilter,
                         lengthFilter = lengthFilter,
@@ -316,32 +340,30 @@ fun MainApp(viewModel: MainViewModel = viewModel()) {
                         onSelectGenderFilter = { viewModel.setGenderFilter(it) },
                         onSelectLengthFilter = { viewModel.setLengthFilter(it) },
                         onSelectPopularityFilter = { viewModel.setPopularityFilter(it) },
-                        onSwipeLeft = { babyName -> viewModel.swipe(babyName, isLiked = false, context = context) },
-                        onSwipeRight = { babyName -> viewModel.swipe(babyName, isLiked = true, context = context) },
+                        onSwipeLeft = { babyName -> viewModel.swipe(babyName, isLiked = false) },
+                        onSwipeRight = { babyName -> viewModel.swipe(babyName, isLiked = true) },
                         onUndo = { viewModel.undoSwipe() },
                         onOpenAddName = { showAddNameDialog = true },
-                        onSwitchPartner = {
-                            val otherId = viewModel.getPartnerId(activeUserId)
-                            viewModel.switchActiveUser(otherId)
-                        }
+                        onAskAi = { viewModel.aiSuggest() }
                     )
                 }
                 1 -> {
                     SharedMatchesScreen(
                         matches = sharedMatches,
-                        partner1Name = partner1Name,
-                        partner2Name = partner2Name,
+                        partner1Name = myName,
+                        partner2Name = partnerName,
                         onUpdateRating = { nameId, rating -> viewModel.updateMatchRating(nameId, rating) },
                         onUpdateNotes = { nameId, notes -> viewModel.updateMatchNotes(nameId, notes) },
-                        onDeleteMatch = { nameId -> viewModel.deleteMatch(nameId) }
+                        onDeleteMatch = { nameId -> viewModel.deleteMatch(nameId) },
+                        onDeepDive = { viewModel.openDeepDive(it.babyName) }
                     )
                 }
                 2 -> {
                     MyLikesScreen(
                         likedNames = myLikes,
-                        activeUserName = activeUserName,
+                        activeUserName = myName,
                         partnerName = partnerName,
-                        onRemoveLike = { nameId -> viewModel.undoSwipe() }
+                        onRemoveLike = { nameId -> viewModel.removeLike(nameId) }
                     )
                 }
                 3 -> {
@@ -349,40 +371,43 @@ fun MainApp(viewModel: MainViewModel = viewModel()) {
                         currentConfig = algoConfig,
                         explanation = algoExplanation,
                         onSaveConfig = { newConfig -> viewModel.updateAlgorithmConfig(newConfig) },
-                        onResetDefaults = { viewModel.resetAlgorithmDefaults() }
+                        onResetDefaults = { viewModel.resetAlgorithmDefaults() },
+                        aiTask = aiTask,
+                        tasteSummary = tasteSummary,
+                        onAiDescribe = { viewModel.aiDescribe(it) },
+                        onAiSuggest = { viewModel.aiSuggest() },
+                        onAiTaste = { viewModel.aiTaste() }
                     )
                 }
             }
 
-            // Match Celebration Dialog Popup
             matchCelebrationName?.let { matchBabyName ->
                 MatchCelebrationDialog(
                     babyName = matchBabyName,
-                    activeUserName = activeUserName,
+                    activeUserName = myName,
                     partnerName = partnerName,
                     onDismiss = { viewModel.dismissMatchCelebration() },
                     onViewSharedMatches = {
                         viewModel.dismissMatchCelebration()
-                        selectedTab = 1 // Open Shared Matches tab
+                        selectedTab = 1
                     }
                 )
             }
 
-            // Add Custom Name Modal
+            deepDive?.let { state ->
+                DeepDiveDialog(
+                    state = state,
+                    onRetryWithLastName = { viewModel.retryDeepDive(it) },
+                    onDismiss = { viewModel.closeDeepDive() }
+                )
+            }
+
             if (showAddNameDialog) {
                 AddNameDialog(
                     partnerName = partnerName,
                     onDismiss = { showAddNameDialog = false },
                     onAddName = { name, gender, origin, meaning, pronunciation, tags ->
-                        viewModel.addCustomName(
-                            name = name,
-                            gender = gender,
-                            origin = origin,
-                            meaning = meaning,
-                            pronunciation = pronunciation,
-                            tags = tags,
-                            context = context
-                        )
+                        viewModel.addCustomName(name, gender, origin, meaning, pronunciation, tags)
                         showAddNameDialog = false
                     }
                 )

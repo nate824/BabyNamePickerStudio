@@ -35,6 +35,10 @@ class BabyNameRepository(private val appDao: AppDao) {
     fun getAllNames(): Flow<List<BabyName>> =
         appDao.getAllBabyNames().map { list -> list.map { it.toDomain() } }
 
+    suspend fun upsertNames(names: List<BabyName>) {
+        appDao.upsertBabyNames(names.map { BabyNameEntity.fromDomain(it) })
+    }
+
     fun getAllMatches(): Flow<List<MatchWithDetails>> {
         return appDao.getAllMatches().map { matches ->
             matches.mapNotNull { match ->
@@ -100,6 +104,12 @@ class BabyNameRepository(private val appDao: AppDao) {
         }
         val entity = appDao.getBabyNameById(lastSwipe.nameId)
         return entity?.toDomain()
+    }
+
+    /** Remove one specific swipe (and any match it created). */
+    suspend fun removeSwipe(userId: String, nameId: String) {
+        appDao.deleteSwipe(userId, nameId)
+        if (appDao.getMatch(nameId) != null) appDao.deleteMatch(nameId)
     }
 
     suspend fun addCustomName(

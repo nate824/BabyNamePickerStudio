@@ -83,7 +83,7 @@ fun SwipeDeckScreen(
     onSwipeRight: (BabyName) -> Unit,
     onUndo: () -> Unit,
     onOpenAddName: () -> Unit,
-    onSwitchPartner: () -> Unit,
+    onAskAi: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showFilterSheet by remember { mutableStateOf(false) }
@@ -231,7 +231,7 @@ fun SwipeDeckScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "You've reviewed all available names for this filter. Switch to $partnerName to see what they picked, or suggest a new baby name to the pool!",
+                            text = "You've reviewed every name for this filter. Ask Claude for fresh ideas, add one of your own, or wait for $partnerName's picks to come in.",
                             fontSize = 14.sp,
                             color = Color.Gray,
                             textAlign = TextAlign.Center,
@@ -250,10 +250,13 @@ fun SwipeDeckScreen(
                         }
                         Spacer(modifier = Modifier.height(10.dp))
                         OutlinedButton(
-                            onClick = onSwitchPartner,
-                            shape = RoundedCornerShape(14.dp)
+                            onClick = onAskAi,
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.testTag("empty_state_ask_ai_button")
                         ) {
-                            Text("Switch to $partnerName's Turn")
+                            Icon(Icons.Default.AutoAwesome, contentDescription = null)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Ask Claude for more names")
                         }
                     }
                 }

@@ -1,5 +1,7 @@
 package com.example.data.model
 
+import kotlinx.serialization.Serializable
+
 enum class Gender {
     BOY,
     GIRL,
@@ -51,6 +53,7 @@ data class PartnerProfile(
     val pairCode: String
 )
 
+@Serializable
 data class AlgorithmConfig(
     val isEnabled: Boolean = true,
     val targetOrigins: Set<String> = emptySet(),

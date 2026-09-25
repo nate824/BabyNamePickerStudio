@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -64,4 +65,44 @@ interface AppDao {
 
     @Query("DELETE FROM matches WHERE nameId = :nameId")
     suspend fun deleteMatch(nameId: String)
+
+    @Query("SELECT nameId FROM matches")
+    suspend fun getAllMatchIds(): List<String>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSwipes(swipes: List<SwipeEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertMatches(matches: List<MatchEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertBabyNames(names: List<BabyNameEntity>)
+
+    @Query("DELETE FROM swipes")
+    suspend fun deleteAllSwipes()
+
+    @Query("DELETE FROM matches")
+    suspend fun deleteAllMatches()
+
+    /** Replace the local mirror of shared state with what the server says. */
+    @Transaction
+    suspend fun replaceSharedState(swipes: List<SwipeEntity>, matches: List<MatchEntity>, names: List<BabyNameEntity>) {
+        upsertBabyNames(names)
+        deleteAllSwipes()
+        insertSwipes(swipes)
+        deleteAllMatches()
+        insertMatches(matches)
+    }
+
+    @Insert
+    suspend fun insertPendingOp(op: PendingOpEntity)
+
+    @Query("SELECT * FROM pending_ops ORDER BY id")
+    suspend fun getPendingOps(): List<PendingOpEntity>
+
+    @Query("SELECT COUNT(*) FROM pending_ops")
+    fun pendingOpCount(): Flow<Int>
+
+    @Query("DELETE FROM pending_ops WHERE id IN (:ids)")
+    suspend fun deletePendingOps(ids: List<Long>)
 }
