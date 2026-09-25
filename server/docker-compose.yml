@@ -1,0 +1,10 @@
+services:
+  kindred:
+    build: .
+    container_name: kindred-sync
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "127.0.0.1:4180:4180"
+    volumes:
+      - ./data:/data
