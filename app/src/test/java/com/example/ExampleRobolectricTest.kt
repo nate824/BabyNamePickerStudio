@@ -60,7 +60,7 @@ class ExampleRobolectricTest {
     )
 
     assertTrue("Partner 2 queue should have names", partner2Queue.isNotEmpty())
-    assertEquals("First name in Partner 2's session must be Alex's liked name!", "boy_liam", partner2Queue[0].id)
+    assertTrue("Alex's liked name should come up within Partner 2's next 20 cards", partner2Queue.take(20).any { it.id == "boy_liam" })
 
     // 4. Partner 2 ("Sam") also likes "boy_liam" -> Mutual Match!
     val isMatchPartner2 = repo.recordSwipe(
@@ -108,8 +108,31 @@ class ExampleRobolectricTest {
       algorithmConfig = AlgorithmConfig()
     )
 
-    assertEquals("Zephyr", p2Queue[0].name)
+    assertTrue("Partner's custom name should come up within the next 20 cards", p2Queue.take(20).any { it.name == "Zephyr" })
 
+    db.close()
+  }
+
+  @Test
+  fun `partner picks are scattered, not stacked at the top`() = runBlocking {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).allowMainThreadQueries().build()
+    val repo = BabyNameRepository(db.appDao())
+    repo.seedDatabaseIfEmpty()
+    val picks = listOf("girl_olivia", "girl_emma", "girl_charlotte", "boy_liam", "boy_noah")
+    picks.forEach { repo.recordSwipe("partner_1", "partner_2", it, true) }
+
+    var stackedRuns = 0
+    repeat(20) { seed ->
+      val queue = repo.computeQueueForUser(
+        "partner_2", "partner_1", null, LengthPreference.ANY, null,
+        AlgorithmConfig(isEnabled = false), kotlin.random.Random(seed)
+      )
+      val positions = picks.map { id -> queue.indexOfFirst { it.id == id } }
+      assertTrue("all partner picks within the first 20 cards: $positions", positions.all { it in 0 until 20 })
+      if (positions.sorted() == listOf(0, 1, 2, 3, 4)) stackedRuns++
+    }
+    assertEquals("partner picks should not simply occupy the top slots", 0, stackedRuns)
     db.close()
   }
 }

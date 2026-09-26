@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.util.UUID
+import kotlin.random.Random
 
 data class MatchWithDetails(
     val match: MatchEntity,
@@ -23,6 +24,10 @@ data class MatchWithDetails(
 )
 
 class BabyNameRepository(private val appDao: AppDao) {
+
+    companion object {
+        private const val PARTNER_PICK_WINDOW = 20
+    }
 
     /** Insert any built-in names the database doesn't have yet (existing rows are left untouched). */
     suspend fun seedDatabaseIfEmpty(extraNames: List<BabyName> = emptyList()) {
@@ -126,11 +131,11 @@ class BabyNameRepository(private val appDao: AppDao) {
             id = id,
             name = nameText.trim().replaceFirstChar { it.uppercase() },
             gender = gender,
-            origin = origin.ifBlank { "Custom" },
-            meaning = meaning.ifBlank { "Special suggestion from partner" },
+            origin = origin.ifBlank { "Unknown" },
+            meaning = meaning.ifBlank { "No meaning added yet" },
             pronunciation = cleanPronunciation,
             popularityRank = 999,
-            styleTags = tags.ifEmpty { listOf("Custom Suggestion", "Family Favorite") },
+            styleTags = tags,
             isUserAdded = true,
             addedByUserId = activeUserId
         )
@@ -167,7 +172,8 @@ class BabyNameRepository(private val appDao: AppDao) {
         genderFilter: Gender?, // null = ALL
         lengthFilter: LengthPreference,
         popularityTierFilter: PopularityTier?,
-        algorithmConfig: AlgorithmConfig
+        algorithmConfig: AlgorithmConfig,
+        random: Random = Random.Default
     ): List<BabyName> {
         val allNames = appDao.getAllBabyNames().first().map { it.toDomain() }
         val userSwipes = appDao.getSwipesForUser(activeUserId).first()
@@ -202,16 +208,10 @@ class BabyNameRepository(private val appDao: AppDao) {
             true
         }
 
-        // CRITICAL COLLABORATIVE REQUIREMENT:
-        // Names liked by partner that active user hasn't swiped yet go TO THE TOP OF THE QUEUE!
+        // Names the partner liked surface early so matches happen sooner, but they're scattered
+        // at random through the next stretch of cards so nothing gives the partner's picks away.
         val (partnerPicks, remainingCandidates) = eligibleNames.partition {
             partnerLikedNameIds.contains(it.id)
-        }
-
-        // Sort partner picks by the timestamp partner liked them (most recently liked first)
-        val partnerSwipeTimestampMap = partnerSwipes.associate { it.nameId to it.timestamp }
-        val sortedPartnerPicks = partnerPicks.sortedByDescending {
-            partnerSwipeTimestampMap[it.id] ?: 0L
         }
 
         val sortedRemaining = if (!algorithmConfig.isEnabled) {
@@ -228,7 +228,20 @@ class BabyNameRepository(private val appDao: AppDao) {
             )
         }
 
-        return sortedPartnerPicks + sortedRemaining
+        return scatterIntoFront(partnerPicks.shuffled(random), sortedRemaining, random)
+    }
+
+    /** Place [picks] at random slots among the first max(20, 3 × picks) cards of [rest]. */
+    private fun scatterIntoFront(picks: List<BabyName>, rest: List<BabyName>, random: Random): List<BabyName> {
+        if (picks.isEmpty()) return rest
+        val total = picks.size + rest.size
+        val window = minOf(total, maxOf(PARTNER_PICK_WINDOW, picks.size * 3))
+        val slots = (0 until window).shuffled(random).take(picks.size).toSet()
+        val pickIter = picks.iterator()
+        val restIter = rest.iterator()
+        return List(total) { i ->
+            if ((i in slots || !restIter.hasNext()) && pickIter.hasNext()) pickIter.next() else restIter.next()
+        }
     }
 
     private fun scoreAndSortByAlgorithm(
@@ -336,10 +349,10 @@ class BabyNameRepository(private val appDao: AppDao) {
         config: AlgorithmConfig
     ): AlgorithmExplanation {
         val allNames = appDao.getAllBabyNames().first().associateBy { it.id }
+        // Only the active user's own likes are described, so the explanation never hints at the partner's picks
         val userSwipes = appDao.getSwipesForUser(activeUserId).first().filter { it.isLiked }
-        val partnerSwipes = appDao.getSwipesForUser(partnerId).first().filter { it.isLiked }
 
-        val allLikedNames = (userSwipes + partnerSwipes).mapNotNull { allNames[it.nameId]?.toDomain() }
+        val allLikedNames = userSwipes.mapNotNull { allNames[it.nameId]?.toDomain() }
 
         val topOrigins = allLikedNames.groupingBy { it.origin }
             .eachCount()
@@ -387,7 +400,7 @@ class BabyNameRepository(private val appDao: AppDao) {
             "Broad aesthetic exploration across classic, modern, and nature tags."
         }
 
-        val partnerNote = "Partner priority active: Any name your partner likes is instantly queued to your top 10 next cards."
+        val partnerNote = "Your partner's picks stay secret until you like the same name — then it's a match!"
 
         return AlgorithmExplanation(
             primaryFactors = factors,

@@ -39,7 +39,6 @@ class SwipeDeckGestureTest {
             var queue by remember { mutableStateOf(listOf(name("a", "Aurora"), name("b", "Beatrix"), name("c", "Clara"))) }
             SwipeDeckScreen(
                 currentQueue = queue,
-                partnerLikedNameIds = emptySet(),
                 activeUserName = "Nate",
                 partnerName = "Sarah",
                 genderFilter = null,

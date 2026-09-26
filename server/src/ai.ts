@@ -135,12 +135,13 @@ export class ClaudeAiService implements AiService {
   async taste(ctx: TasteContext): Promise<string> {
     const partner = ctx.partnerName ?? "their partner";
     const prompt = [
-      `Write a warm, specific 3-5 sentence read on this couple's naming taste, addressed to them ("you two").`,
-      `Point out where ${ctx.myName} and ${partner} overlap and where they differ, and name one direction worth exploring.`,
+      `Write a warm, specific 3-5 sentence read on ${ctx.myName}'s naming taste, addressed to them ("you").`,
+      `Describe the patterns in what they like and pass on, mention what the names they share with ${partner} have in common, and name one direction worth exploring.`,
+      `${partner}'s other picks are private: only mention names from the lists below.`,
       `Plain text, no lists or markdown.`,
       `${ctx.myName} liked:\n${ctx.myLikes.map(briefLine).join("\n") || "(nothing yet)"}`,
-      `${partner} liked:\n${ctx.partnerLikes.map(briefLine).join("\n") || "(nothing yet)"}`,
-      `Passed on:\n${ctx.dislikes.map(briefLine).join("\n") || "(nothing yet)"}`,
+      `Liked by both ${ctx.myName} and ${partner}:\n${ctx.partnerLikes.map(briefLine).join("\n") || "(nothing yet)"}`,
+      `${ctx.myName} passed on:\n${ctx.dislikes.map(briefLine).join("\n") || "(nothing yet)"}`,
     ].join("\n\n");
     return (await this.ask(TasteSchema, prompt)).summary;
   }

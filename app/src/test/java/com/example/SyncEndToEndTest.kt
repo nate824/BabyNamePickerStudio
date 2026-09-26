@@ -69,7 +69,7 @@ class SyncEndToEndTest {
         assertEquals("Sarah", nate.session.session.value.partnerName)
         assertEquals("Nate", sarah.session.session.value.partnerName)
 
-        // Nate likes Liam; after syncing, it is at the top of Sarah's deck
+        // Nate likes Liam; after syncing, it comes up early in Sarah's deck
         nate.swipe("boy_liam", true)
         assertTrue(nate.sync.sync())
         assertTrue(sarah.sync.sync())
@@ -78,7 +78,7 @@ class SyncEndToEndTest {
             com.example.data.model.LengthPreference.ANY, null,
             com.example.data.model.AlgorithmConfig(isEnabled = false)
         )
-        assertEquals("boy_liam", sarahQueue.first().id)
+        assertTrue(sarahQueue.take(20).any { it.id == "boy_liam" })
 
         // Sarah likes it too: she detects the match locally, and Nate gets it via sync
         val nateNewMatches = async { withTimeout(10_000) { nate.sync.newMatches.first() } }

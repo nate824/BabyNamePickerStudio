@@ -223,7 +223,7 @@ fun MyLikesScreen(
                                                 )
                                                 Spacer(modifier = Modifier.width(4.dp))
                                                 Text(
-                                                    text = "Waiting for $partnerName's turn",
+                                                    text = "Not a match yet",
                                                     fontSize = 11.sp,
                                                     fontWeight = FontWeight.SemiBold,
                                                     color = PrimaryRose

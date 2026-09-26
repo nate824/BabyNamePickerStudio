@@ -72,18 +72,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val algorithmConfig = MutableStateFlow(sessionStore.algorithmConfig)
     val algorithmExplanation = MutableStateFlow(
         AlgorithmExplanation(
-            primaryFactors = listOf("Collaborative Priority: Queuing partner likes directly to your next session."),
+            primaryFactors = listOf("Cold start: Blending popular multicultural classics and fresh rising stars."),
             originBiasDescription = "Balanced multicultural distribution.",
             styleBiasDescription = "Broad aesthetic exploration.",
-            matchRecommendationNote = "Partner priority active: Any name your partner likes is instantly queued to your top 10 next cards."
+            matchRecommendationNote = PRIVACY_NOTE
         )
     )
 
     private val _currentQueue = MutableStateFlow<List<BabyName>>(emptyList())
     val currentQueue: StateFlow<List<BabyName>> = _currentQueue.asStateFlow()
-
-    private val _partnerLikedNameIds = MutableStateFlow<Set<String>>(emptySet())
-    val partnerLikedNameIds: StateFlow<Set<String>> = _partnerLikedNameIds.asStateFlow()
 
     private val _sharedMatches = MutableStateFlow<List<MatchWithDetails>>(emptyList())
     val sharedMatches: StateFlow<List<MatchWithDetails>> = _sharedMatches.asStateFlow()
@@ -349,11 +346,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             .sortedByDescending { it.timestamp }
             .take(limit)
             .mapNotNull { allNames[it.nameId]?.toBrief() }
+        // Only names you've both liked are shared with Claude, so the summary can't reveal
+        // anything your partner liked that you haven't.
+        val myLikedIds = mine.filter { it.isLiked }.map { it.nameId }.toSet()
         _tasteSummary.value = container.api.aiTaste(
             TasteRequest(
                 myLikes = briefs(mine, true, 120),
-                partnerLikes = briefs(theirs, true, 120),
-                dislikes = briefs(mine + theirs, false, 120)
+                partnerLikes = briefs(theirs.filter { it.nameId in myLikedIds }, true, 120),
+                dislikes = briefs(mine, false, 120)
             )
         ).summary
     }
@@ -431,9 +431,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // --- queue & derived lists ---
 
     private suspend fun reloadQueue(keepTopCard: Boolean) {
-        val partnerSwipes = repository.getSwipesForUser(partnerId).first()
-        _partnerLikedNameIds.value = partnerSwipes.filter { it.isLiked }.map { it.nameId }.toSet()
-
         var queue = repository.computeQueueForUser(
             activeUserId = myId,
             partnerId = partnerId,
@@ -467,7 +464,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val name = allNamesMap[swipe.nameId] ?: return@mapNotNull null
             LikedNameWithPartnerStatus(
                 babyName = name,
-                partnerLiked = partnerSwipeMap[swipe.nameId],
+                // Only reveal the partner's vote once it's a match; passes stay private
+                partnerLiked = if (partnerSwipeMap[swipe.nameId] == true) true else null,
                 timestamp = swipe.timestamp
             )
         }
@@ -492,6 +490,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     companion object {
         private const val LOCAL_USER = "me"
         private const val NO_PARTNER = "no_partner"
+        const val PRIVACY_NOTE = "Your partner's picks stay secret until you like the same name — then it's a match!"
     }
 }
 

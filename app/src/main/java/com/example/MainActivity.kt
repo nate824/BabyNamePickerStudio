@@ -142,7 +142,6 @@ fun MainApp(viewModel: MainViewModel = viewModel()) {
     }
 
     val currentQueue by viewModel.currentQueue.collectAsState()
-    val partnerLikedIds by viewModel.partnerLikedNameIds.collectAsState()
     val sharedMatches by viewModel.sharedMatches.collectAsState()
     val myLikes by viewModel.myLikes.collectAsState()
 
@@ -330,7 +329,6 @@ fun MainApp(viewModel: MainViewModel = viewModel()) {
                 0 -> {
                     SwipeDeckScreen(
                         currentQueue = currentQueue,
-                        partnerLikedNameIds = partnerLikedIds,
                         activeUserName = myName,
                         partnerName = partnerName,
                         genderFilter = genderFilter,

@@ -75,8 +75,6 @@ import kotlin.math.roundToInt
 @Composable
 fun SwipeCard(
     babyName: BabyName,
-    isPartnerPick: Boolean,
-    partnerName: String,
     modifier: Modifier = Modifier,
     onSwipeLeft: () -> Unit,
     onSwipeRight: () -> Unit
@@ -166,40 +164,11 @@ fun SwipeCard(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                // Header: Partner Pick Banner & Gender Tag
+                // Header: Gender Tag
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    if (isPartnerPick) {
-                        Surface(
-                            shape = RoundedCornerShape(20.dp),
-                            color = primaryColor,
-                            modifier = Modifier
-                                .testTag("partner_pick_badge")
-                                .padding(bottom = 12.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.AutoAwesome,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "Liked by $partnerName! ⭐",
-                                    color = Color.White,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                    }
-
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,

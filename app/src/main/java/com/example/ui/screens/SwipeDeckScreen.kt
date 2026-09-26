@@ -70,7 +70,6 @@ import com.example.ui.theme.PrimaryRose
 @Composable
 fun SwipeDeckScreen(
     currentQueue: List<BabyName>,
-    partnerLikedNameIds: Set<String>,
     activeUserName: String,
     partnerName: String,
     genderFilter: Gender?,
@@ -170,30 +169,15 @@ fun SwipeDeckScreen(
             }
         }
 
-        // Active Queue Count & Collaborative hint
         if (currentQueue.isNotEmpty()) {
-            val partnerPickCount = currentQueue.count { partnerLikedNameIds.contains(it.id) }
-            Row(
+            Text(
+                text = "${currentQueue.size} names in deck",
+                fontSize = 12.sp,
+                color = Color.Gray,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 6.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "${currentQueue.size} names in deck",
-                    fontSize = 12.sp,
-                    color = Color.Gray
-                )
-                if (partnerPickCount > 0) {
-                    Text(
-                        text = "⭐ $partnerPickCount queued from $partnerName!",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = PrimaryRose
-                    )
-                }
-            }
+                    .padding(bottom = 6.dp)
+            )
         }
 
         // Main Deck Container
@@ -232,7 +216,7 @@ fun SwipeDeckScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "You've reviewed every name for this filter. Ask Claude for fresh ideas, add one of your own, or wait for $partnerName's picks to come in.",
+                            text = "You've reviewed every name for this filter. Ask Claude for fresh ideas or add one of your own.",
                             fontSize = 14.sp,
                             color = Color.Gray,
                             textAlign = TextAlign.Center,
@@ -283,15 +267,12 @@ fun SwipeDeckScreen(
 
                 // Foreground active swipe card
                 val topName = currentQueue[0]
-                val isPartnerPick = partnerLikedNameIds.contains(topName.id)
 
                 // Keyed by name so each new card starts centered instead of inheriting
                 // the previous card's off-screen drag offset.
                 key(topName.id) {
                     SwipeCard(
                         babyName = topName,
-                        isPartnerPick = isPartnerPick,
-                        partnerName = partnerName,
                         modifier = Modifier.fillMaxSize(0.96f),
                         onSwipeLeft = { onSwipeLeft(topName) },
                         onSwipeRight = { onSwipeRight(topName) }
