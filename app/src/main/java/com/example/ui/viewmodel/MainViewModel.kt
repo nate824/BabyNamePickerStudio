@@ -20,6 +20,7 @@ import com.example.data.remote.NewNameRequest
 import com.example.data.remote.RemoteName
 import com.example.data.remote.TasteRequest
 import com.example.data.repository.MatchWithDetails
+import com.example.data.seed.NameCatalog
 import com.example.data.session.Session
 import com.example.data.sync.SyncStatus
 import com.example.ui.screens.LikedNameWithPartnerStatus
@@ -32,6 +33,8 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 import java.io.IOException
 
 enum class AiTask { SUGGEST, DESCRIBE, TASTE }
@@ -114,7 +117,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         NotificationHelper.createNotificationChannel(application)
 
         viewModelScope.launch {
-            repository.seedDatabaseIfEmpty()
+            repository.seedDatabaseIfEmpty(withContext(Dispatchers.IO) { NameCatalog.load(getApplication()) })
             reloadAll(keepTopCard = false)
         }
 

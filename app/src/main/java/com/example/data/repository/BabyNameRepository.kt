@@ -24,12 +24,10 @@ data class MatchWithDetails(
 
 class BabyNameRepository(private val appDao: AppDao) {
 
-    suspend fun seedDatabaseIfEmpty() {
-        val count = appDao.getBabyNamesCount()
-        if (count < SeedBabyNames.initialNames.size) {
-            val entities = SeedBabyNames.initialNames.map { BabyNameEntity.fromDomain(it) }
-            appDao.insertBabyNames(entities)
-        }
+    /** Insert any built-in names the database doesn't have yet (existing rows are left untouched). */
+    suspend fun seedDatabaseIfEmpty(extraNames: List<BabyName> = emptyList()) {
+        val all = SeedBabyNames.initialNames + extraNames
+        appDao.insertBabyNames(all.map { BabyNameEntity.fromDomain(it) })
     }
 
     fun getAllNames(): Flow<List<BabyName>> =
