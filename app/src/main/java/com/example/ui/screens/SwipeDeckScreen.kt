@@ -42,6 +42,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -284,14 +285,18 @@ fun SwipeDeckScreen(
                 val topName = currentQueue[0]
                 val isPartnerPick = partnerLikedNameIds.contains(topName.id)
 
-                SwipeCard(
-                    babyName = topName,
-                    isPartnerPick = isPartnerPick,
-                    partnerName = partnerName,
-                    modifier = Modifier.fillMaxSize(0.96f),
-                    onSwipeLeft = { onSwipeLeft(topName) },
-                    onSwipeRight = { onSwipeRight(topName) }
-                )
+                // Keyed by name so each new card starts centered instead of inheriting
+                // the previous card's off-screen drag offset.
+                key(topName.id) {
+                    SwipeCard(
+                        babyName = topName,
+                        isPartnerPick = isPartnerPick,
+                        partnerName = partnerName,
+                        modifier = Modifier.fillMaxSize(0.96f),
+                        onSwipeLeft = { onSwipeLeft(topName) },
+                        onSwipeRight = { onSwipeRight(topName) }
+                    )
+                }
             }
         }
 
